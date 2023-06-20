@@ -2971,28 +2971,28 @@ void MainWindow::rcloneListRemotes() {
 
             // set icons scale based on iconSize value
             if (iconSize == "S") {
+              lightModeiconScale = 1.5;
+              darkModeIconScale = 1;
+            }
+
+            if (iconSize == "M") {
+              lightModeiconScale = 2;
+              darkModeIconScale = 1.333;
+            }
+
+            if (iconSize == "L") {
               lightModeiconScale = 3;
               darkModeIconScale = 2;
             }
 
-            if (iconSize == "M") {
+            if (iconSize == "XL") {
               lightModeiconScale = 4;
               darkModeIconScale = 2.666;
             }
 
-            if (iconSize == "L") {
+            if (iconSize == "XXL") {
               lightModeiconScale = 6;
               darkModeIconScale = 4;
-            }
-
-            if (iconSize == "XL") {
-              lightModeiconScale = 8;
-              darkModeIconScale = 5.333;
-            }
-
-            if (iconSize == "XXL") {
-              lightModeiconScale = 15;
-              darkModeIconScale = 10;
             }
 
             // disable scaling - all is fusion now
