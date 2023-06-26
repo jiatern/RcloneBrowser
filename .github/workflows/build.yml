@@ -4,15 +4,13 @@ on:
   push:
     branches:
       - master
-      
-  workflow_dispatch:
-  
+
 jobs:
   build_windows:
-    name: Windows Build
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    name: Windows Build
     runs-on: windows-latest
-    
+
     steps:
       - uses: actions/checkout@v3
       - name: Install Development Tools
@@ -31,7 +29,7 @@ jobs:
           Remove-Item -Recurse -Force qt-downloader
           python qtd windows desktop 5.15.2 win64_msvc2019_64
           popd
-          
+
       - name: Build Rclone Browser
         run: |
           mkdir build
@@ -48,7 +46,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [build_windows]
-    
+
     steps:
       - uses: actions/checkout@v3
       - name: Create artifact directory
@@ -61,15 +59,15 @@ jobs:
           pushd /tmp/artifacts
           for i in *;do zip -r -0 $i.zip $i;done
           popd
-          
+
       - name: Get short commit
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-        
+
       - uses: rickstaa/action-create-tag@v1
         with:
           tag: release-${{ env.SHORT_SHA }}
           tag_exists_error: false
-          
+
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "/tmp/artifacts/*.zip"
