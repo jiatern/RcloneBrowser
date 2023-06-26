@@ -1,0 +1,81 @@
+name: Build Rclone Browser
+
+on:
+  push:
+    branches:
+      - master
+      
+  workflow_dispatch:
+  
+jobs:
+  build_windows:
+    name: Windows Build
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Development Tools
+        run: |
+          choco install visualstudio2019community visualstudio2019-workload-nativedesktop cmake qt5-default -y
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          refreshenv
+          python get-pip.py
+          refreshenv
+          pip install py7zr lxml requests semantic-version
+          Remove-Item -Recurse -Force C:\Qt
+          mkdir C:\Qt
+          pushd C:\Qt
+          git clone https://github.com/engnr/qt-downloader.git
+          mv qt-downloader/qt-downloader .\qtd
+          Remove-Item -Recurse -Force qt-downloader
+          python qtd windows desktop 5.15.2 win64_msvc2019_64
+          popd
+          
+      - name: Build Rclone Browser
+        run: |
+          mkdir build
+          cd build
+          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_CONFIGURATION_TYPES="Release" -DCMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64 .. 
+          cmake --build . --config Release
+          C:\Qt\5.15.2\msvc2019_64\bin\windeployqt.exe --no-translations --no-angle --no-compiler-runtime --no-svg ".\build\Release\RcloneBrowser.exe"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows
+          path: build\build\Release\*
+
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build_windows]
+    
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create artifact directory
+        run: rm -rf /tmp/artifacts && mkdir /tmp/artifacts
+      - uses: actions/download-artifact@v3
+        with:
+          path: /tmp/artifacts
+      - name: Compress artifacts
+        run: |
+          pushd /tmp/artifacts
+          for i in *;do zip -r -0 $i.zip $i;done
+          popd
+          
+      - name: Get short commit
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+        
+      - uses: rickstaa/action-create-tag@v1
+        with:
+          tag: release-${{ env.SHORT_SHA }}
+          tag_exists_error: false
+          
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "/tmp/artifacts/*.zip"
+          name: Rclone Browser Autobuild For Commit ${{ env.SHORT_SHA }}
+          omitBody: true
+          generateReleaseNotes: true
+          prerelease: true
+          skipIfReleaseExists: true
+          tag: release-${{ env.SHORT_SHA }}
